@@ -11,6 +11,7 @@ int get_video_frame(MediaState * ms, AVFrame * frame)
 	//若解码成功
 	if (got_picture)
 	{
+		return 0;
 		double dpts = NAN;
 
 		if (frame->pts != AV_NOPTS_VALUE)
@@ -141,15 +142,10 @@ int video_open(MediaState * ms)
 		h = ms->default_height;
 	}
 
-	if (!ms->window_title)
-		ms->window_title = ms->input_filename;
-	SDL_SetWindowTitle(ms->window, ms->window_title);
-
 	//SDL_SetWindowSize(ms->window, w, h);
 	//SDL_SetWindowPosition(ms->window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 	//if (ms->is_full_screen)
 	//	SDL_SetWindowFullscreen(ms->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-	SDL_ShowWindow(ms->window);
 
 	ms->width = w;
 	ms->height = h;
@@ -217,8 +213,6 @@ void video_audio_display(MediaState * ms)
 
 	if (ms->show_mode == SHOW_MODE_WAVES)
 	{
-		SDL_SetRenderDrawColor(ms->renderer, 255, 255, 255, 255);
-
 		h = ms->height / nb_display_channels;
 		h2 = (h * 9) / 20;
 		for (ch = 0; ch < nb_display_channels; ch++) 
@@ -237,19 +231,19 @@ void video_audio_display(MediaState * ms)
 				{
 					ys = y1;
 				}
-				fill_rectangle(ms->xleft + x, ys, 1, y, ms->renderer);
+				//fill_rectangle(ms->xleft + x, ys, 1, y, ms->renderer);
 				i += channels;
 				if (i >= SAMPLE_ARRAY_SIZE)
 					i -= SAMPLE_ARRAY_SIZE;
 			}
 		}
 
-		SDL_SetRenderDrawColor(ms->renderer, 0, 0, 255, 255);
+		//SDL_SetRenderDrawColor(ms->renderer, 0, 0, 255, 255);
 
 		for (ch = 1; ch < nb_display_channels; ch++)
 		{
 			y = ms->ytop + ch * h;
-			fill_rectangle(ms->xleft, y, ms->width, 1, ms->renderer);
+			//fill_rectangle(ms->xleft, y, ms->width, 1, ms->renderer);
 		}
 	}
 }
@@ -282,7 +276,7 @@ void video_image_display(MediaState * ms)
 						sp->width = vp->width;
 						sp->height = vp->height;
 					}
-					if (realloc_texture(&ms ->renderer, &ms->sub_texture, SDL_PIXELFORMAT_ARGB8888, sp->width, sp->height, SDL_BLENDMODE_BLEND, 1) < 0)
+					if (realloc_texture(&MediaState::renderer, &ms->sub_texture, SDL_PIXELFORMAT_ARGB8888, sp->width, sp->height, SDL_BLENDMODE_BLEND, 1) < 0)
 						return;
 
 					for (i = 0; i < sp->sub.num_rects; i++)
@@ -317,24 +311,34 @@ void video_image_display(MediaState * ms)
 		}
 	}
 
-	calculate_display_rect(&rect, ms->xleft, ms->ytop, ms->width, ms->height, vp->width, vp->height, vp->sar);
 
 	if (!vp->uploaded) {
-		if (upload_texture(&ms->renderer, &ms->vid_texture, vp->frame, &ms->img_convert_ctx) < 0)
+		if (upload_texture(&MediaState::renderer, &ms->vid_texture, vp->frame, &ms->img_convert_ctx) < 0)
 			return;
 		vp->uploaded = 1; //更新一次纹理后置1
 		vp->flip_v = vp->frame->linesize[0] < 0;
 	}
 
-	set_sdl_yuv_conversion_mode(vp->frame);
+	if (ms->is_master_)
+	{
+		if(MediaState::global_ms_->vid_texture)
+			SDL_RenderCopyEx(MediaState::renderer, MediaState::global_ms_->vid_texture, NULL, &MediaState::global_ms_->rect_, 0, NULL, vp->flip_v ? SDL_FLIP_VERTICAL : (SDL_RendererFlip)0);
+		if (MediaState::global_ms_right_->vid_texture)
+			SDL_RenderCopyEx(MediaState::renderer, MediaState::global_ms_right_->vid_texture, NULL, &MediaState::global_ms_right_->rect_, 0, NULL, vp->flip_v ? SDL_FLIP_VERTICAL : (SDL_RendererFlip)0);
+		if (MediaState::global_ms_top_->vid_texture)
+			SDL_RenderCopyEx(MediaState::renderer, MediaState::global_ms_top_->vid_texture, NULL, &MediaState::global_ms_top_->rect_, 0, NULL, vp->flip_v ? SDL_FLIP_VERTICAL : (SDL_RendererFlip)0);
+		if (MediaState::global_ms_bottom_->vid_texture)
+			SDL_RenderCopyEx(MediaState::renderer, MediaState::global_ms_bottom_->vid_texture, NULL, &MediaState::global_ms_bottom_->rect_, 0, NULL, vp->flip_v ? SDL_FLIP_VERTICAL : (SDL_RendererFlip)0);
+	}
+	//set_sdl_yuv_conversion_mode(vp->frame);
 	//复制视频纹理到渲染器
-	SDL_RenderCopyEx(ms->renderer, ms->vid_texture, NULL, &rect, 0, NULL, vp->flip_v ? SDL_FLIP_VERTICAL : (SDL_RendererFlip)0);
-	set_sdl_yuv_conversion_mode(NULL);
+
+	//set_sdl_yuv_conversion_mode(NULL);
 	//再复制字幕纹理到渲染器，故视频相当于字幕的背景
 	if (sp)
 	{
 		if (USE_ONEPASS_SUBTITLE_RENDER)
-			SDL_RenderCopy(ms->renderer, ms->sub_texture, NULL, &rect);
+			SDL_RenderCopy(MediaState::renderer, ms->sub_texture, NULL, &rect);
 		else
 		{
 			int i;
@@ -344,7 +348,7 @@ void video_image_display(MediaState * ms)
 				SDL_Rect *sub_rect = (SDL_Rect*)sp->sub.rects[i];
 				SDL_Rect target = { rect.x + sub_rect->x * xratio, rect.y + sub_rect->y * yratio,
 									sub_rect->w * xratio, sub_rect->h * yratio };
-				SDL_RenderCopy(ms->renderer, ms->sub_texture, sub_rect, &target);
+				SDL_RenderCopy(MediaState::renderer, ms->sub_texture, sub_rect, &target);
 			}
 		}
 	}
@@ -357,12 +361,17 @@ void video_display(MediaState * ms)
 	if (!ms->width)
 		video_open(ms);
 
-	SDL_SetRenderDrawColor(ms->renderer, 0, 0, 0, 255);
-	SDL_RenderClear(ms->renderer);
+	if (ms->is_master_)
+	{
+		//SDL_SetRenderDrawColor(MediaState::renderer, 0, 0, 0, 255);
+		//SDL_RenderClear(MediaState::renderer);
+	}
 	//纹理处理
 	if (ms->audio_st && ms->show_mode != SHOW_MODE_VIDEO)
 		video_audio_display(ms); //显示仅有音频的文件
 	else if (ms->video_st)
 		video_image_display(ms); //显示一帧视频画面
-	SDL_RenderPresent(ms->renderer); //渲染输出画面
+
+	if(ms->is_master_)
+		SDL_RenderPresent(MediaState::renderer); //渲染输出画面
 }

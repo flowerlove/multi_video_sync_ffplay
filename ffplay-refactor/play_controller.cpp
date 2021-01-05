@@ -21,11 +21,11 @@ double vp_duration(MediaState *ms, Frame * vp, Frame * nextvp)
 double compute_target_delay(double delay, MediaState *ms)
 {
 	double sync_threshold, diff = 0;
-
+	double temp_delay = delay;
 	if (MediaState::global_ms_->get_master_sync_type() != AV_SYNC_VIDEO_MASTER)
 	{
 		auto video_clock = ms->vidclk.get_clock();
-		auto master_clock = ms->is_master_ ? ms->get_master_clock() : MediaState::global_ms_->get_master_clock();
+		auto master_clock = ms->is_master_ ? MediaState::global_ms_->get_master_clock() : MediaState::global_ms_->get_external_clock();
 		diff = video_clock - master_clock; //计算视频时钟和主时钟的差值
 
 		sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
@@ -37,18 +37,18 @@ double compute_target_delay(double delay, MediaState *ms)
 				delay = delay + diff;
 			else if (diff >= sync_threshold)
 				delay = 2 * delay;
+
+			if(temp_delay < delay)
+				std::cout << "Delay:" << ms->filename << " " << diff << " " << delay << std::endl;
 		}
 	}
-
-	av_log(NULL, AV_LOG_TRACE, "video: delay=%0.3f A-V=%f\n", delay, -diff);
-	std::cout << "Delay:" << ms->filename << " " << diff <<" "<< delay << std::endl;
 	return delay;
 }
 
 void update_video_pts(MediaState * ms, double pts, int64_t pos, int serial)
 {
 	ms->vidclk.set_clock(pts, serial);
-	//if(ms->is_master_)
+	if(ms->is_master_)
 		ms->sync_clock_to_slave(&ms->extclk, &ms->vidclk);
 }
 
@@ -346,7 +346,7 @@ void refresh_loop_wait_event(MediaState* crop_stream_left_half, MediaState* crop
 	{
 		do_refresh(crop_stream_left_half);
 		//do_refresh(crop_stream_right_half);
-		do_refresh(crop_stream_top_half);
+		//do_refresh(crop_stream_top_half);
 		//do_refresh(crop_stream_bottom_half);
 	}
 }

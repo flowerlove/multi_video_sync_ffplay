@@ -112,7 +112,8 @@ int stream_component_open(MediaState *ms, int stream_index)
 	switch (avctx->codec_type)
 	{
 	case AVMEDIA_TYPE_AUDIO:
-		
+		if (!ms->is_master_)
+			break;
 		sample_rate = avctx->sample_rate;
 		nb_channels = avctx->channels;
 
@@ -148,7 +149,7 @@ int stream_component_open(MediaState *ms, int stream_index)
 
 		if ((ret = ms->auddec.decoder_start(audio_thread, ms)) < 0)
 			return ret;
-		SDL_PauseAudioDevice(ms->audio_dev, 0);
+		SDL_PauseAudioDevice(MediaState::audio_dev, 0);
 		break;
 	case AVMEDIA_TYPE_VIDEO:
 		ms->video_stream = stream_index;
@@ -665,7 +666,7 @@ bool stream_open(MediaState* ms, const char * filename)
 	startup_volume = av_clip(SDL_MIX_MAXVOLUME * startup_volume / 100, 0, SDL_MIX_MAXVOLUME);
 	ms->audio_volume = startup_volume;		  //设置初始音量
 	ms->muted = 0;							  //不静音
-	ms->av_sync_type = AV_SYNC_AUDIO_MASTER;  //默认视频同步于音频
+	ms->av_sync_type = AV_SYNC_EXTERNAL_CLOCK;  //默认视频同步于音频
 
 	/* 给读取线程创建条件变量 */
 	if (!(ms->continue_read_thread = SDL_CreateCond()))
@@ -700,14 +701,12 @@ void do_exit(MediaState * ms)
 	{
 		stream_close(ms);
 	}
-	if (ms->renderer)
-		SDL_DestroyRenderer(ms->renderer);
-	if (ms->window)
-		SDL_DestroyWindow(ms->window);
+	if (MediaState::renderer)
+		SDL_DestroyRenderer(MediaState::renderer);
+	if (MediaState::window)
+		SDL_DestroyWindow(MediaState::window);
 
 	avformat_network_deinit();
-	if (ms->show_status)
-		printf("\n");
 	SDL_Quit();
 	av_log(NULL, AV_LOG_QUIET, "%s", "");
 	exit(0);

@@ -1,10 +1,18 @@
 #include "media_state.h"
 MediaState* MediaState::global_ms_ = NULL;
+MediaState* MediaState::global_ms_right_ = NULL;
+MediaState* MediaState::global_ms_top_ = NULL;
+MediaState* MediaState::global_ms_bottom_ = NULL;
+
 AVPacket MediaState::flush_pkt = { 0 };
+
+SDL_RendererInfo MediaState::renderer_info = {0};
+SDL_Renderer* MediaState::renderer = NULL;
+SDL_Window* MediaState::window = NULL;
+SDL_AudioDeviceID MediaState::audio_dev;
 
 MediaState::~MediaState()
 {
-
 }
 
 /* 检测FrameQueue是否可读，然后对Frame的相关变量进行赋值并写入队列 */
@@ -108,8 +116,6 @@ void MediaState::sync_clock_to_slave(Clock * c, Clock * slave)
 void MediaState::init()
 {
 	is_master_ = false;
-	default_width = 960;
-	default_height = 540;
 	screen_width = 0;
 	screen_height = 0;
 	loop = 1;

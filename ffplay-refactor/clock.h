@@ -11,11 +11,11 @@ extern "C"
 };
 
 /* 时钟差异小于该阈值则认为已同步，不必进行时钟同步 */
-constexpr auto AV_SYNC_THRESHOLD_MIN = 0.016;
+constexpr auto AV_SYNC_THRESHOLD_MIN = 0.04; // 0.0166667;
 /* 时钟差异大于该阈值则需要进行时钟同步 */
-constexpr auto AV_SYNC_THRESHOLD_MAX = 0.033;
+constexpr auto AV_SYNC_THRESHOLD_MAX = 0.08; // 0.0333334;
 /* 如果一帧的时长大于该阈值，则为了实现同步，不再重复显示/播放该帧 */
-constexpr auto AV_SYNC_FRAMEDUP_THRESHOLD = 0.066;
+constexpr auto AV_SYNC_FRAMEDUP_THRESHOLD = 0.16; //  0.0666668;
 /* 如果差异大于该阈值，表明错误过大，不进行同步 */
 constexpr auto AV_NOSYNC_THRESHOLD = 10.0;
 

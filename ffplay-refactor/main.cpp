@@ -30,7 +30,6 @@ int right_thread(void* arg)
 	return 0;
 }
 
-
 int top_thread(void* arg)
 {
 	MediaState* ms_top_ = (MediaState*)(arg);
@@ -45,7 +44,6 @@ int top_thread(void* arg)
 
 	return 0;
 }
-
 
 int bottom_thread(void* arg)
 {
@@ -62,7 +60,6 @@ int bottom_thread(void* arg)
 	return 0;
 }
 
-
 int main(int argc, char* argv[])
 {
 	av_init_packet(&MediaState::flush_pkt);
@@ -72,11 +69,51 @@ int main(int argc, char* argv[])
 	MediaState* ms_top_ = (MediaState*)av_malloc(sizeof(MediaState));
 	MediaState* ms_bottom_ = (MediaState*)av_malloc(sizeof(MediaState));
 	MediaState::global_ms_ = ms;
+	MediaState::global_ms_right_ = ms_right_;
+	MediaState::global_ms_top_ = ms_top_;
+	MediaState::global_ms_bottom_ = ms_bottom_;
 	ms->init();
 	ms_right_->init();
 	ms_top_->init();
 	ms_bottom_->init();
 	ms->is_master_ = true;
+	
+	int video_width = 3840;
+	int video_height = 1728;
+
+	ms->xleft = 0;
+	ms->ytop = 0;
+	ms->input_filename = "D:\\ffmpeg\\17-1.MP4";
+	ms->rect_.x = ms->xleft;
+	ms->rect_.y = ms->ytop;
+	ms->rect_.w = video_width;
+	ms->rect_.h = video_height;
+	ms->default_width = video_width;
+	ms->default_height = video_height;
+
+	ms_right_->xleft = video_width;
+	ms_right_->ytop = 0;
+	ms_right_->input_filename = "D:\\ffmpeg\\17-2.MP4";
+	ms_right_->rect_.x = ms_right_->xleft;
+	ms_right_->rect_.y = ms_right_->ytop;
+	ms_right_->rect_.w = video_width;
+	ms_right_->rect_.h = video_height;
+
+	ms_top_->xleft = video_width * 2;
+	ms_top_->ytop = 0;
+	ms_top_->input_filename = "D:\\ffmpeg\\17-3.MP4";
+	ms_top_->rect_.x = ms_top_->xleft;
+	ms_top_->rect_.y = ms_top_->ytop;
+	ms_top_->rect_.w = video_width;
+	ms_top_->rect_.h = video_height;
+
+	ms_bottom_->xleft = video_width * 3;
+	ms_bottom_->ytop = 0;
+	ms_bottom_->input_filename = "D:\\ffmpeg\\17-4.MP4";
+	ms_bottom_->rect_.x = ms_bottom_->xleft;
+	ms_bottom_->rect_.y = ms_bottom_->ytop;
+	ms_bottom_->rect_.w = video_width;
+	ms_bottom_->rect_.h = video_height;
 
 	av_log_set_flags(AV_LOG_SKIP_REPEATED);
 
@@ -95,112 +132,41 @@ int main(int argc, char* argv[])
 	SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
 	SDL_EventState(SDL_USEREVENT, SDL_IGNORE);
 
-	ms->input_filename = "D:\\ffmpeg\\ffmpeg-4.2.1-win32-shared\\bin\\7-1.MP4";
-	ms->window = SDL_CreateWindow("OnePlayer1", 0, 0,
-		ms->default_width, ms->default_height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
+	MediaState::window = SDL_CreateWindow("OnePlayer1", 0, 0,
+		ms_bottom_->xleft + ms_bottom_->rect_.w,
+		ms_bottom_->ytop + ms_bottom_->rect_.h,
+		SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	if (ms->window)
+	if (MediaState::window)
 	{
-		ms->renderer = SDL_CreateRenderer(ms->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-		if (!ms->renderer)
+		MediaState::renderer = SDL_CreateRenderer(MediaState::window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+		if (!MediaState::renderer)
 		{
 			av_log(NULL, AV_LOG_WARNING, "Failed to initialize a hardware accelerated renderer: %s\n", SDL_GetError());
-			ms->renderer = SDL_CreateRenderer(ms->window, -1, 0);
+			MediaState::renderer = SDL_CreateRenderer(MediaState::window, -1, 0);
 		}
-		if (ms->renderer)
+		if (MediaState::renderer)
 		{
-			if (!SDL_GetRendererInfo(ms->renderer, &ms->renderer_info))
-				av_log(NULL, AV_LOG_VERBOSE, "Initialized %s renderer.\n", ms->renderer_info.name);
+			if (!SDL_GetRendererInfo(MediaState::renderer, &MediaState::renderer_info))
+				av_log(NULL, AV_LOG_VERBOSE, "Initialized %s renderer.\n", MediaState::renderer_info.name);
 		}
 	}
-	if (!ms->window || !ms->renderer || !ms->renderer_info.num_texture_formats)
+	if (!MediaState::window || !MediaState::renderer || !MediaState::renderer_info.num_texture_formats)
 	{
 		av_log(NULL, AV_LOG_FATAL, "Failed to create window or renderer: %s", SDL_GetError());
 		do_exit(ms);
 	}
 
-	ms_right_->input_filename = "D:\\ffmpeg\\ffmpeg-4.2.1-win32-shared\\bin\\7-2.MP4";
-	ms_right_->window = SDL_CreateWindow("OnePlayer2", 960, 0,
-		ms_right_->default_width, ms_right_->default_height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	if (ms_right_->window)
-	{
-		ms_right_->renderer = SDL_CreateRenderer(ms_right_->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-		if (!ms_right_->renderer)
-		{
-			av_log(NULL, AV_LOG_WARNING, "Failed to initialize a hardware accelerated renderer: %s\n", SDL_GetError());
-			ms_right_->renderer = SDL_CreateRenderer(ms_right_->window, -1, 0);
-		}
-		if (ms_right_->renderer)
-		{
-			if (!SDL_GetRendererInfo(ms_right_->renderer, &ms_right_->renderer_info))
-				av_log(NULL, AV_LOG_VERBOSE, "Initialized %s renderer.\n", ms_right_->renderer_info.name);
-		}
-	}
-	if (!ms_right_->window || !ms_right_->renderer || !ms_right_->renderer_info.num_texture_formats)
-	{
-		av_log(NULL, AV_LOG_FATAL, "Failed to create window or renderer: %s", SDL_GetError());
-		do_exit(ms_right_);
-	}
-
-	ms_top_->input_filename = "D:\\ffmpeg\\ffmpeg-4.2.1-win32-shared\\bin\\7-3.MP4";
-	ms_top_->window = SDL_CreateWindow("OnePlayer3", 0, 540,
-		ms_top_->default_width, ms_top_->default_height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	if (ms_top_->window)
-	{
-		ms_top_->renderer = SDL_CreateRenderer(ms_top_->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-		if (!ms_top_->renderer)
-		{
-			av_log(NULL, AV_LOG_WARNING, "Failed to initialize a hardware accelerated renderer: %s\n", SDL_GetError());
-			ms_top_->renderer = SDL_CreateRenderer(ms_top_->window, -1, 0);
-		}
-		if (ms_top_->renderer)
-		{
-			if (!SDL_GetRendererInfo(ms_top_->renderer, &ms_top_->renderer_info))
-				av_log(NULL, AV_LOG_VERBOSE, "Initialized %s renderer.\n", ms_top_->renderer_info.name);
-		}
-	}
-	if (!ms_top_->window || !ms_top_->renderer || !ms_top_->renderer_info.num_texture_formats)
-	{
-		av_log(NULL, AV_LOG_FATAL, "Failed to create window or renderer: %s", SDL_GetError());
-		do_exit(ms_top_);
-	}
-
-	ms_bottom_->input_filename = "D:\\ffmpeg\\ffmpeg-4.2.1-win32-shared\\bin\\7-4.MP4";
-	ms_bottom_->window = SDL_CreateWindow("OnePlayer4", 960, 540,
-		ms_bottom_->default_width, ms_bottom_->default_height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	if (ms_bottom_->window)
-	{
-		ms_bottom_->renderer = SDL_CreateRenderer(ms_bottom_->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-		if (!ms_bottom_->renderer)
-		{
-			av_log(NULL, AV_LOG_WARNING, "Failed to initialize a hardware accelerated renderer: %s\n", SDL_GetError());
-			ms_bottom_->renderer = SDL_CreateRenderer(ms_bottom_->window, -1, 0);
-		}
-		if (ms_bottom_->renderer)
-		{
-			if (!SDL_GetRendererInfo(ms_bottom_->renderer, &ms_bottom_->renderer_info))
-				av_log(NULL, AV_LOG_VERBOSE, "Initialized %s renderer.\n", ms_bottom_->renderer_info.name);
-		}
-	}
-	if (!ms_bottom_->window || !ms_bottom_->renderer || !ms_bottom_->renderer_info.num_texture_formats)
-	{
-		av_log(NULL, AV_LOG_FATAL, "Failed to create window or renderer: %s", SDL_GetError());
-		do_exit(ms_bottom_);
-	}
-
 	SDL_Thread* left_thread_ = SDL_CreateThread(left_thread, "Left_Thread", ms);
-	SDL_Thread* right_thread_ = SDL_CreateThread(right_thread, "Right_Thread", ms_right_);
-	SDL_Thread* top_thread_ = SDL_CreateThread(top_thread, "top_Thread", ms_top_);
-	SDL_Thread* bottom_thread_ = SDL_CreateThread(bottom_thread, "Bottm_Thread", ms_bottom_);
+	//SDL_Thread* right_thread_ = SDL_CreateThread(right_thread, "Right_Thread", ms_right_);
+	//SDL_Thread* top_thread_ = SDL_CreateThread(top_thread, "top_Thread", ms_top_);
+	//SDL_Thread* bottom_thread_ = SDL_CreateThread(bottom_thread, "Bottm_Thread", ms_bottom_);
 
 	//进入事件循环
 	SDL_WaitThread(left_thread_, NULL);
-	SDL_WaitThread(right_thread_, NULL);
-	SDL_WaitThread(top_thread_, NULL);
-	SDL_WaitThread(bottom_thread_, NULL);
+	//SDL_WaitThread(right_thread_, NULL);
+	//SDL_WaitThread(top_thread_, NULL);
+	//SDL_WaitThread(bottom_thread_, NULL);
 	event_loop_event(ms, ms_right_, ms_top_, ms_bottom_);
 
 	return 0;

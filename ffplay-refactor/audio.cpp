@@ -229,7 +229,7 @@ void sdl_audio_callback(void * opaque, Uint8 * stream, int len)
 	{
 		ms->audclk.set_clock_at(ms->audio_clock - (double)(2 * ms->audio_hw_buf_size + ms->audio_write_buf_size) / ms->audio_tgt.bytes_per_sec, ms->audio_clock_serial, 
 			ms->audio_callback_time / 1000000.0);
-		//if(ms->is_master_)
+		if(ms->is_master_)
 			ms->sync_clock_to_slave(&ms->extclk, &ms->audclk);
 	}
 }
@@ -272,7 +272,7 @@ int audio_open(void * opaque, int64_t wanted_channel_layout, int wanted_nb_chann
 	wanted_spec.callback = sdl_audio_callback;
 	wanted_spec.userdata = opaque; 
 	MediaState* ms = (MediaState*)(opaque);
-	while (!(ms->audio_dev = SDL_OpenAudioDevice(NULL, 0, &wanted_spec,
+	while (!(MediaState::audio_dev = SDL_OpenAudioDevice(NULL, 0, &wanted_spec,
 		&spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_CHANNELS_CHANGE)))
 	{
 		av_log(NULL, AV_LOG_WARNING, "SDL_OpenAudio (%d channels, %d Hz): %s\n",

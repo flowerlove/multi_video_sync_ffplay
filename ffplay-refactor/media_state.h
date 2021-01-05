@@ -8,14 +8,14 @@
 
 constexpr int SAMPLE_ARRAY_SIZE = (8 * 65536);
 constexpr int MAX_QUEUE_SIZE = (15 * 1024 * 1024);
-constexpr int MIN_FRAMES = 60;
+constexpr int MIN_FRAMES = 30;
 constexpr int EXTERNAL_CLOCK_MIN_FRAMES = 2;
 constexpr int EXTERNAL_CLOCK_MAX_FRAMES = 10;
 constexpr int SDL_AUDIO_MIN_BUFFER_SIZE = 512;
 constexpr int SDL_AUDIO_MAX_CALLBACKS_PER_SEC = 30;
 constexpr int SDL_VOLUME_STEP = (0.75);
 constexpr int AUDIO_DIFF_AVG_NB = 20;
-constexpr int REFRESH_RATE = 0.001;
+constexpr int REFRESH_RATE = 0.01;
 constexpr int USE_ONEPASS_SUBTITLE_RENDER = 1;
 constexpr int FF_QUIT_EVENT = (SDL_USEREVENT + 2);    //自定义的退出事件
 enum ShowMode
@@ -33,17 +33,15 @@ public:
 	MediaState() = default;
 	~MediaState();
 
-	SDL_Window* window;
-	SDL_Renderer* renderer;
-	SDL_RendererInfo renderer_info = { 0 };
-	SDL_AudioDeviceID audio_dev;
-
 	const char* input_filename;
 	const char* window_title;
-	int default_width = 960;
-	int default_height = 540;
-	int screen_width = 0;
-	int screen_height = 0;
+	SDL_Rect rect_;
+	int render_width;
+	int render_height;
+	int default_width;
+	int default_height;
+	int screen_width;
+	int screen_height;
 	int loop = 1;
 	int autoexit = 1;
 	int framedrop = -1;
@@ -159,7 +157,15 @@ public:
 	double remaining_time = 0.0f;
 
 	static MediaState* global_ms_;
+	static MediaState* global_ms_right_;
+	static MediaState* global_ms_top_;
+	static MediaState* global_ms_bottom_;
 	static AVPacket flush_pkt;
+
+	static SDL_Window* window;
+	static SDL_Renderer* renderer;
+	static SDL_RendererInfo renderer_info;
+	static SDL_AudioDeviceID audio_dev;
 };
 
 
