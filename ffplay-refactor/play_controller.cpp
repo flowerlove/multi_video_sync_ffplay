@@ -28,12 +28,12 @@ double compute_target_delay(double delay, MediaState *ms)
 		auto master_clock = ms->is_master_ ? MediaState::global_ms_->get_master_clock() : MediaState::global_ms_->get_external_clock();
 		diff = video_clock - master_clock; //计算视频时钟和主时钟的差值
 
-		sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
+		sync_threshold = FFMAX(MediaState::global_ms_->AV_SYNC_THRESHOLD_MIN, FFMIN(MediaState::global_ms_->AV_SYNC_THRESHOLD_MAX, delay));
 		if (!isnan(diff) && fabs(diff) < ms->max_frame_duration)
 		{
 			if (diff <= -sync_threshold)
 				delay = FFMAX(0, delay + diff);
-			else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD)
+			else if (diff >= sync_threshold && delay > MediaState::global_ms_->AV_SYNC_FRAMEDUP_THRESHOLD)
 				delay = delay + diff;
 			else if (diff >= sync_threshold)
 				delay = 2 * delay;
@@ -207,7 +207,7 @@ void video_refresh(void * opaque, double * remaining_time)
 
 					ms->frame_timer += delay;
 
-					if (delay > 0 && time - ms->frame_timer > AV_SYNC_THRESHOLD_MAX)
+					if (delay > 0 && time - ms->frame_timer > MediaState::global_ms_->AV_SYNC_THRESHOLD_MAX)
 						ms->frame_timer = time;
 
 					SDL_LockMutex(ms->pict_fq.get_mutex());
@@ -345,9 +345,9 @@ void refresh_loop_wait_event(MediaState* crop_stream_left_half, MediaState* crop
 	while (!SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT))
 	{
 		do_refresh(crop_stream_left_half);
-		//do_refresh(crop_stream_right_half);
-		//do_refresh(crop_stream_top_half);
-		//do_refresh(crop_stream_bottom_half);
+		do_refresh(crop_stream_right_half);
+		do_refresh(crop_stream_top_half);
+		do_refresh(crop_stream_bottom_half);
 	}
 }
 

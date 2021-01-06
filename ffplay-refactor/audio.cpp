@@ -229,8 +229,7 @@ void sdl_audio_callback(void * opaque, Uint8 * stream, int len)
 	{
 		ms->audclk.set_clock_at(ms->audio_clock - (double)(2 * ms->audio_hw_buf_size + ms->audio_write_buf_size) / ms->audio_tgt.bytes_per_sec, ms->audio_clock_serial, 
 			ms->audio_callback_time / 1000000.0);
-		if(ms->is_master_)
-			ms->sync_clock_to_slave(&ms->extclk, &ms->audclk);
+		ms->sync_clock_to_slave(&ms->extclk, &ms->audclk);
 	}
 }
 

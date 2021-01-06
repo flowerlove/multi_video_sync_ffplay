@@ -133,8 +133,8 @@ int main(int argc, char* argv[])
 	SDL_EventState(SDL_USEREVENT, SDL_IGNORE);
 
 	MediaState::window = SDL_CreateWindow("OnePlayer1", 0, 0,
-		ms_bottom_->xleft + ms_bottom_->rect_.w,
-		ms_bottom_->ytop + ms_bottom_->rect_.h,
+		ms_bottom_->rect_.x + ms_bottom_->rect_.w,
+		ms_bottom_->rect_.y + ms_bottom_->rect_.h,
 		SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	if (MediaState::window)
@@ -158,15 +158,15 @@ int main(int argc, char* argv[])
 	}
 
 	SDL_Thread* left_thread_ = SDL_CreateThread(left_thread, "Left_Thread", ms);
-	//SDL_Thread* right_thread_ = SDL_CreateThread(right_thread, "Right_Thread", ms_right_);
-	//SDL_Thread* top_thread_ = SDL_CreateThread(top_thread, "top_Thread", ms_top_);
-	//SDL_Thread* bottom_thread_ = SDL_CreateThread(bottom_thread, "Bottm_Thread", ms_bottom_);
+	SDL_Thread* right_thread_ = SDL_CreateThread(right_thread, "Right_Thread", ms_right_);
+	SDL_Thread* top_thread_ = SDL_CreateThread(top_thread, "top_Thread", ms_top_);
+	SDL_Thread* bottom_thread_ = SDL_CreateThread(bottom_thread, "Bottm_Thread", ms_bottom_);
 
 	//进入事件循环
 	SDL_WaitThread(left_thread_, NULL);
-	//SDL_WaitThread(right_thread_, NULL);
-	//SDL_WaitThread(top_thread_, NULL);
-	//SDL_WaitThread(bottom_thread_, NULL);
+	SDL_WaitThread(right_thread_, NULL);
+	SDL_WaitThread(top_thread_, NULL);
+	SDL_WaitThread(bottom_thread_, NULL);
 	event_loop_event(ms, ms_right_, ms_top_, ms_bottom_);
 
 	return 0;

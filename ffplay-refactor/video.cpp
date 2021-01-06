@@ -11,7 +11,6 @@ int get_video_frame(MediaState * ms, AVFrame * frame)
 	//若解码成功
 	if (got_picture)
 	{
-		return 0;
 		double dpts = NAN;
 
 		if (frame->pts != AV_NOPTS_VALUE)
@@ -48,6 +47,14 @@ int video_thread(void * arg)
 	int ret;
 	AVRational tb = ms->video_st->time_base; //获取时基
 	AVRational frame_rate = av_guess_frame_rate(ms->ic, ms->video_st, NULL); //获取帧率
+
+	if (ms->is_master_)
+	{
+		ms->frame_rate_ = frame_rate.num / frame_rate.den;
+		ms->AV_SYNC_THRESHOLD_MIN = 1.0f / (double)ms->frame_rate_;
+		ms->AV_SYNC_THRESHOLD_MAX = 2 * ms->AV_SYNC_THRESHOLD_MIN;
+		ms->AV_SYNC_FRAMEDUP_THRESHOLD = 3 * ms->AV_SYNC_THRESHOLD_MIN;
+	}
 
 	if (!frame)
 	{
@@ -321,6 +328,8 @@ void video_image_display(MediaState * ms)
 
 	if (ms->is_master_)
 	{
+		set_sdl_yuv_conversion_mode(vp->frame);
+
 		if(MediaState::global_ms_->vid_texture)
 			SDL_RenderCopyEx(MediaState::renderer, MediaState::global_ms_->vid_texture, NULL, &MediaState::global_ms_->rect_, 0, NULL, vp->flip_v ? SDL_FLIP_VERTICAL : (SDL_RendererFlip)0);
 		if (MediaState::global_ms_right_->vid_texture)
@@ -329,8 +338,10 @@ void video_image_display(MediaState * ms)
 			SDL_RenderCopyEx(MediaState::renderer, MediaState::global_ms_top_->vid_texture, NULL, &MediaState::global_ms_top_->rect_, 0, NULL, vp->flip_v ? SDL_FLIP_VERTICAL : (SDL_RendererFlip)0);
 		if (MediaState::global_ms_bottom_->vid_texture)
 			SDL_RenderCopyEx(MediaState::renderer, MediaState::global_ms_bottom_->vid_texture, NULL, &MediaState::global_ms_bottom_->rect_, 0, NULL, vp->flip_v ? SDL_FLIP_VERTICAL : (SDL_RendererFlip)0);
+
+		set_sdl_yuv_conversion_mode(NULL);
 	}
-	//set_sdl_yuv_conversion_mode(vp->frame);
+
 	//复制视频纹理到渲染器
 
 	//set_sdl_yuv_conversion_mode(NULL);
