@@ -485,8 +485,8 @@ int read_thread(void * arg)
 		
 
 		if (!ms->paused &&
-			(!ms->audio_st || (ms->auddec.is_finished() == *ms->audio_pq.get_serial() && ms->samp_fq.frame_queue_nb_remaining() == 0)) &&
-			(!ms->video_st || (ms->viddec.is_finished() == *ms->video_pq.get_serial() && ms->pict_fq.frame_queue_nb_remaining() == 0)))
+			(!ms->audio_st || (ms->auddec.is_finished() == ms->audio_pq.get_serial() && ms->samp_fq.frame_queue_nb_remaining() == 0)) &&
+			(!ms->video_st || (ms->viddec.is_finished() == ms->video_pq.get_serial() && ms->pict_fq.frame_queue_nb_remaining() == 0)))
 		{
 			
 			if (allow_loop())
@@ -655,8 +655,8 @@ bool stream_open(MediaState* ms, const char * filename)
 	ms->samp_fq.frame_queue_init(&ms->audio_pq, SAMPLE_QUEUE_SIZE, 1);
 
 	/* 初始化几个时钟 */
-	ms->vidclk = Clock(ms->video_pq.get_serial());
-	ms->audclk = Clock(ms->audio_pq.get_serial());
+	ms->vidclk = Clock(ms->video_pq.get_serial_address());
+	ms->audclk = Clock(ms->audio_pq.get_serial_address());
 	ms->extclk = Clock(ms->extclk.get_serial());
 	ms->audio_clock_serial = -1;
 

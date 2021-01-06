@@ -68,7 +68,7 @@ int audio_decode_frame(MediaState * ms)
 		if (!(af = ms->samp_fq.frame_queue_peek_readable()))
 			return -1;
 		ms->samp_fq.frame_queue_next();
-	} while (af->serial != *ms->audio_pq.get_serial());
+	} while (af->serial != ms->audio_pq.get_serial());
 
 	data_size = av_samples_get_buffer_size(NULL, af->frame->channels, af->frame->nb_samples, (AVSampleFormat)af->frame->format, 1);
 

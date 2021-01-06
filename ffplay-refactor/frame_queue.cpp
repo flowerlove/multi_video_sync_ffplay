@@ -177,7 +177,7 @@ void FrameQueue::frame_queue_init(PacketQueue * pkt_q, int m_size, int keep_lst)
 int64_t FrameQueue::frame_queue_last_pos()
 {
 	Frame *fp = &fq[rindex];
-	if (rindex_shown && fp->serial == *pktq->get_serial())
+	if (rindex_shown && fp->serial == pktq->get_serial())
 		return fp->pos;
 	else
 		return -1;

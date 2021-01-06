@@ -54,7 +54,7 @@ int Decoder::decoder_decode_frame(AVFrame * frame, AVSubtitle * sub)
 	while (true)
 	{
 		AVPacket packet;
-		if (*pkt_queue->get_serial() == pkt_serial)
+		if (pkt_queue->get_serial() == pkt_serial)
 		{
 			do {
 				//强制退出
@@ -118,7 +118,7 @@ int Decoder::decoder_decode_frame(AVFrame * frame, AVSubtitle * sub)
 				if (pkt_queue->packet_queue_get(&packet, 1, &pkt_serial) < 0)
 					return -1;
 			}
-		} while (*pkt_queue->get_serial() != pkt_serial);
+		} while (pkt_queue->get_serial() != pkt_serial);
 
 		//如果当前packet是flush_pkt
 		if (packet.data == MediaState::flush_pkt.data)

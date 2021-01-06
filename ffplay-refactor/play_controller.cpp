@@ -183,7 +183,7 @@ void video_refresh(void * opaque, double * remaining_time)
 				lastvp = ms->pict_fq.frame_queue_peek_last();
 				vp = ms->pict_fq.frame_queue_peek();
 
-				if (vp->serial != *ms->video_pq.get_serial())
+				if (vp->serial != ms->video_pq.get_serial())
 				{
 					ms->pict_fq.frame_queue_next();
 					continue;
@@ -239,7 +239,7 @@ void video_refresh(void * opaque, double * remaining_time)
 							else
 								sp2 = NULL;
 
-							if (sp->serial != *ms->subtitle_pq.get_serial()
+							if (sp->serial != ms->subtitle_pq.get_serial()
 								|| (ms->vidclk.get_pts() > (sp->pts + ((float)sp->sub.end_display_time / 1000)))
 								|| (sp2 && ms->vidclk.get_pts() > (sp2->pts + ((float)sp2->sub.start_display_time / 1000))))
 							{

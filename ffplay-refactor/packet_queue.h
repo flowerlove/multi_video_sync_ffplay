@@ -41,11 +41,14 @@ public:
 	int packet_queue_get(AVPacket *pkt, bool block, int *serial);
 	bool is_construct();
 	bool is_abort();
-	int* get_serial();
+	int get_serial();
 	int get_nb_packets();
 	int get_size();
 	int64_t get_duration();
-
+	int* get_serial_address()
+	{
+		return &serial;
+	}
 
 private:
 	MyAVPacketList *first_pkt, *last_pkt;   
