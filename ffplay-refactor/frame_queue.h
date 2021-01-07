@@ -4,7 +4,7 @@
 #include "packet_queue.h"
 #include "define.h"
 
-constexpr auto VIDEO_PICTURE_QUEUE_SIZE = 3;
+constexpr auto VIDEO_PICTURE_QUEUE_SIZE = 9;
 constexpr auto SUBPICTURE_QUEUE_SIZE = 16;
 constexpr auto SAMPLE_QUEUE_SIZE = 9;
 #define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, FFMAX(VIDEO_PICTURE_QUEUE_SIZE, SUBPICTURE_QUEUE_SIZE))

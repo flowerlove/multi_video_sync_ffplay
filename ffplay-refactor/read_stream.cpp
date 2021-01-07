@@ -669,7 +669,7 @@ bool stream_open(MediaState* ms, const char * filename)
 	startup_volume = av_clip(SDL_MIX_MAXVOLUME * startup_volume / 100, 0, SDL_MIX_MAXVOLUME);
 	ms->audio_volume = startup_volume;		  //设置初始音量
 	ms->muted = 0;							  //不静音
-	ms->av_sync_type = AV_SYNC_EXTERNAL_CLOCK;  //默认视频同步于音频
+	ms->av_sync_type = AV_SYNC_AUDIO_MASTER;  //默认视频同步于音频
 
 	/* 给读取线程创建条件变量 */
 	if (!(ms->continue_read_thread = SDL_CreateCond()))

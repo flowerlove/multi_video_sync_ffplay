@@ -19,7 +19,7 @@ int get_video_frame(MediaState * ms, AVFrame * frame)
 			if (frame->pts != AV_NOPTS_VALUE)
 			{
 				dpts = av_q2d(ms->video_st->time_base) * frame->pts;
-				double master_clock = ms->is_master_ ? ms->get_master_clock() : MediaState::global_ms_->get_video_clock();
+				double master_clock = MediaState::global_ms_->get_master_clock();
 				double diff = dpts - master_clock;
 				double diff_delay = diff - ms->frame_last_filter_delay;
 				int videoq_nb_packets = ms->video_pq.get_nb_packets();
@@ -54,10 +54,10 @@ int video_thread(void * arg)
 	AVRational tb = ms->video_st->time_base; //获取时基
 	AVRational frame_rate = av_guess_frame_rate(ms->ic, ms->video_st, NULL); //获取帧率
 
-	//if (ms->is_master_)
+	if (ms->is_master_)
 	{
 		ms->frame_rate_ = frame_rate.num / frame_rate.den;
-		ms->AV_SYNC_THRESHOLD_MIN = 1.0f / (double)ms->frame_rate_;
+		ms->AV_SYNC_THRESHOLD_MIN = 1.0f / (double)ms->frame_rate_  * 2;
 		ms->AV_SYNC_THRESHOLD_MAX = 2 * ms->AV_SYNC_THRESHOLD_MIN;
 		ms->AV_SYNC_FRAMEDUP_THRESHOLD = 4 * ms->AV_SYNC_THRESHOLD_MIN;
 	}

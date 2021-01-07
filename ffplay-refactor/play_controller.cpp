@@ -26,7 +26,7 @@ double compute_target_delay(double delay, MediaState *ms)
 	if (MediaState::global_ms_->get_master_sync_type() != AV_SYNC_VIDEO_MASTER)
 	{
 		auto video_clock = ms->vidclk.get_clock();
-		auto master_clock = ms->is_master_ ? MediaState::global_ms_->get_master_clock() : MediaState::global_ms_->get_external_clock();
+		auto master_clock = MediaState::global_ms_->get_master_clock();
 		diff = video_clock - master_clock; //计算视频时钟和主时钟的差值
 
 		sync_threshold = FFMAX(MediaState::global_ms_->AV_SYNC_THRESHOLD_MIN, FFMIN(MediaState::global_ms_->AV_SYNC_THRESHOLD_MAX, delay));
@@ -49,7 +49,7 @@ double compute_target_delay(double delay, MediaState *ms)
 void update_video_pts(MediaState * ms, double pts, int64_t pos, int serial)
 {
 	ms->vidclk.set_clock(pts, serial);
-	if(ms->is_master_)
+	//if(ms->is_master_)
 		ms->sync_clock_to_slave(&ms->extclk, &ms->vidclk);
 }
 
@@ -63,7 +63,6 @@ void stream_seek(MediaState * ms, int64_t pos, int64_t rel, int seek_by_bytes)
 		if (seek_by_bytes)
 			ms->seek_flags |= AVSEEK_FLAG_BYTE;
 		ms->seek_req = 1; 
-		ms->seek_flags |= AVSEEK_FLAG_ANY;
 		SDL_CondSignal(ms->continue_read_thread);
 	}
 }
@@ -83,7 +82,7 @@ void stream_toggle_pause(MediaState * ms)
 		ms->vidclk.set_clock(ms->vidclk.get_clock(), *ms->vidclk.get_serial());
 	}
 	//不论暂停还是播放，均更新外部时钟
-	if(ms->is_master_)
+	//if(ms->is_master_)
 		ms->extclk.set_clock(ms->extclk.get_clock(), * ms->extclk.get_serial());
 	//反转状态
 	ms->paused = !ms->paused;
@@ -567,7 +566,6 @@ void event_loop_event(MediaState * crop_stream_left_half, MediaState* crop_strea
 
 	while (true)
 	{
-
 		refresh_loop_wait_event(crop_stream_left_half, crop_stream_right_half, crop_stream_top_half, crop_stream_bottom_half, &event);
 		//响应各类事件
 		MediaState* cur_stream = crop_stream_left_half;
@@ -583,33 +581,15 @@ void event_loop_event(MediaState * crop_stream_left_half, MediaState* crop_strea
 				continue;
 			switch (event.key.keysym.sym)
 			{
-			//	//全屏/非全屏
-			//case SDLK_f:
-			//	toggle_full_screen(cur_stream);
-			//	cur_stream->force_refresh = 1;
-			//	break;
 				//暂停/播放
 			case SDLK_p:
 			case SDLK_SPACE:
+				std::cout << "PAUSE~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 				toggle_pause(cur_stream);
 				toggle_pause(crop_stream_right_half);
 				toggle_pause(crop_stream_top_half);
 				toggle_pause(crop_stream_bottom_half);
 				break;
-				//静音/非静音
-			//case SDLK_m:
-			//	toggle_mute(cur_stream);
-			//	break;
-				//乘号和0增加音量
-			//case SDLK_KP_MULTIPLY:
-			//case SDLK_0:
-			//	update_volume(cur_stream, 1, SDL_VOLUME_STEP);
-			//	break;
-			//	//除号和9降低音量
-			//case SDLK_KP_DIVIDE:
-			//case SDLK_9:
-			//	update_volume(cur_stream, -1, SDL_VOLUME_STEP);
-			//	break;
 				//逐帧播放或暂停时的seek
 			case SDLK_s:		
 				step_to_next_frame(cur_stream);

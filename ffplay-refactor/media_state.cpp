@@ -92,7 +92,7 @@ double MediaState::get_master_clock()
 
 double MediaState::get_video_clock()
 {
-	return audclk.get_clock();
+	return vidclk.get_clock();
 }
 
 double MediaState::get_audio_clock()
@@ -110,7 +110,10 @@ void MediaState::sync_clock_to_slave(Clock * c, Clock * slave)
 	double clock = c->get_clock();
 	double slave_clock = slave->get_clock();
 	if (!isnan(slave_clock) && (isnan(clock) || fabs(clock - slave_clock) > AV_NOSYNC_THRESHOLD))
+	{
+		std::cout << "SYNC CLOCK:" << slave_clock << "Serial:" << *slave->get_serial() << std::endl;
 		c->set_clock(slave_clock, *slave->get_serial());
+	}
 }
 
 void MediaState::init()
