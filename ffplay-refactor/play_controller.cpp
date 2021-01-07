@@ -1,4 +1,5 @@
 #include "play_controller.h"
+#include "read_stream.h"
 
 /* 计算一帧的持续时间 */
 double vp_duration(MediaState *ms, Frame * vp, Frame * nextvp)
@@ -38,8 +39,8 @@ double compute_target_delay(double delay, MediaState *ms)
 			else if (diff >= sync_threshold)
 				delay = 2 * delay;
 
-			if(temp_delay < delay)
-				std::cout << "Delay:" << ms->filename << " " << diff << " " << delay << std::endl;
+			//if(temp_delay < delay)
+			//	std::cout << "Delay:" << ms->filename << " " << diff << " " << delay << std::endl;
 		}
 	}
 	return delay;
@@ -62,6 +63,7 @@ void stream_seek(MediaState * ms, int64_t pos, int64_t rel, int seek_by_bytes)
 		if (seek_by_bytes)
 			ms->seek_flags |= AVSEEK_FLAG_BYTE;
 		ms->seek_req = 1; 
+		ms->seek_flags |= AVSEEK_FLAG_ANY;
 		SDL_CondSignal(ms->continue_read_thread);
 	}
 }
@@ -81,7 +83,8 @@ void stream_toggle_pause(MediaState * ms)
 		ms->vidclk.set_clock(ms->vidclk.get_clock(), *ms->vidclk.get_serial());
 	}
 	//不论暂停还是播放，均更新外部时钟
-	MediaState::global_ms_->extclk.set_clock(MediaState::global_ms_->extclk.get_clock(), *MediaState::global_ms_->extclk.get_serial());
+	if(ms->is_master_)
+		ms->extclk.set_clock(ms->extclk.get_clock(), * ms->extclk.get_serial());
 	//反转状态
 	ms->paused = !ms->paused;
 	ms->audclk.set_paused(!ms->paused);
@@ -566,10 +569,121 @@ void event_loop_event(MediaState * crop_stream_left_half, MediaState* crop_strea
 	{
 
 		refresh_loop_wait_event(crop_stream_left_half, crop_stream_right_half, crop_stream_top_half, crop_stream_bottom_half, &event);
-		//event_loop_one(crop_stream_left_half);
-		//event_loop_one(crop_stream_right_half);
-		//event_loop_one(crop_stream_top_half);
-		//event_loop_one(crop_stream_bottom_half);
+		//响应各类事件
+		MediaState* cur_stream = crop_stream_left_half;
+		switch (event.type)
+		{
+		case SDL_KEYDOWN:
+			if (event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_q)
+			{
+				do_exit(cur_stream);
+				break;
+			}
+			if (!cur_stream->width)
+				continue;
+			switch (event.key.keysym.sym)
+			{
+			//	//全屏/非全屏
+			//case SDLK_f:
+			//	toggle_full_screen(cur_stream);
+			//	cur_stream->force_refresh = 1;
+			//	break;
+				//暂停/播放
+			case SDLK_p:
+			case SDLK_SPACE:
+				toggle_pause(cur_stream);
+				toggle_pause(crop_stream_right_half);
+				toggle_pause(crop_stream_top_half);
+				toggle_pause(crop_stream_bottom_half);
+				break;
+				//静音/非静音
+			//case SDLK_m:
+			//	toggle_mute(cur_stream);
+			//	break;
+				//乘号和0增加音量
+			//case SDLK_KP_MULTIPLY:
+			//case SDLK_0:
+			//	update_volume(cur_stream, 1, SDL_VOLUME_STEP);
+			//	break;
+			//	//除号和9降低音量
+			//case SDLK_KP_DIVIDE:
+			//case SDLK_9:
+			//	update_volume(cur_stream, -1, SDL_VOLUME_STEP);
+			//	break;
+				//逐帧播放或暂停时的seek
+			case SDLK_s:		
+				step_to_next_frame(cur_stream);
+				step_to_next_frame(crop_stream_right_half);
+				step_to_next_frame(crop_stream_top_half);
+				step_to_next_frame(crop_stream_bottom_half);
+				break;
+				//切换显示模式
+			//case SDLK_w:
+			//	toggle_audio_display(cur_stream);
+			//	break;
+				//短快退
+			case SDLK_LEFT:
+				incr = cur_stream->seek_interval ? -cur_stream->seek_interval : -5.0; //快退时间数，10秒
+				goto do_seek;
+				//短快进
+			case SDLK_RIGHT:
+				incr = cur_stream->seek_interval ? cur_stream->seek_interval : 5.0;
+				goto do_seek;
+				//长快进
+			case SDLK_UP:
+				incr = 10.0;
+				goto do_seek;
+				//长快退
+			case SDLK_DOWN:
+				incr = -10.0;
+			do_seek:
+				if (cur_stream->seek_by_bytes)
+				{
+					pos = -1;
+					if (pos < 0 && cur_stream->video_stream >= 0)
+						pos = cur_stream->pict_fq.frame_queue_last_pos();
+					if (pos < 0 && cur_stream->audio_stream >= 0)
+						pos = cur_stream->pict_fq.frame_queue_last_pos();
+					if (pos < 0)
+						pos = avio_tell(cur_stream->ic->pb);
+					if (cur_stream->ic->bit_rate)
+						incr *= cur_stream->ic->bit_rate / 8.0;
+					else
+						incr *= 180000.0;
+					pos += incr;
+					stream_seek(cur_stream, pos, incr, 1);
+					stream_seek(crop_stream_right_half, pos, incr, 1);
+					stream_seek(crop_stream_top_half, pos, incr, 1);
+					stream_seek(crop_stream_bottom_half, pos, incr, 1);
+				}
+				else
+				{
+					pos = cur_stream->get_master_clock();
+					if (isnan(pos))
+						pos = (double)cur_stream->seek_pos / AV_TIME_BASE;
+					pos += incr;
+					if (cur_stream->ic->start_time != AV_NOPTS_VALUE && pos < cur_stream->ic->start_time / (double)AV_TIME_BASE)
+						pos = cur_stream->ic->start_time / (double)AV_TIME_BASE;
+					stream_seek(cur_stream, (int64_t)(pos * AV_TIME_BASE), (int64_t)(incr * AV_TIME_BASE), 0);
+					stream_seek(crop_stream_right_half, (int64_t)(pos * AV_TIME_BASE), (int64_t)(incr * AV_TIME_BASE), 0);
+					stream_seek(crop_stream_top_half, (int64_t)(pos * AV_TIME_BASE), (int64_t)(incr * AV_TIME_BASE), 0);
+					stream_seek(crop_stream_bottom_half, (int64_t)(pos * AV_TIME_BASE), (int64_t)(incr * AV_TIME_BASE), 0);
+				}
+				break;
+			default:
+				break;
+			}
+			break;
+		case SDL_QUIT:
+		case FF_QUIT_EVENT: //自定义事件，用于出错时的主动退出
+			do_exit(cur_stream);
+			do_exit(crop_stream_right_half);
+			do_exit(crop_stream_top_half);
+			do_exit(crop_stream_bottom_half);
+			break;
+		default:
+			break;
+		}
 	}
 }
 

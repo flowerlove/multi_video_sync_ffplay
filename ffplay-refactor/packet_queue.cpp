@@ -52,7 +52,7 @@ bool PacketQueue::is_abort()
 	return abort_request;
 }
 
-int PacketQueue::get_serial()
+int& PacketQueue::get_serial()
 {
 	return serial;
 }

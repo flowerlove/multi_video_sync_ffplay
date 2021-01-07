@@ -7,15 +7,15 @@
 #include "define.h"
 
 constexpr int SAMPLE_ARRAY_SIZE = (8 * 65536);
-constexpr int MAX_QUEUE_SIZE = (15 * 1024 * 1024);
-constexpr int MIN_FRAMES = 30;
+constexpr int MAX_QUEUE_SIZE = (64 * 1024 * 1024);
+constexpr int MIN_FRAMES = 60;
 constexpr int EXTERNAL_CLOCK_MIN_FRAMES = 2;
 constexpr int EXTERNAL_CLOCK_MAX_FRAMES = 10;
 constexpr int SDL_AUDIO_MIN_BUFFER_SIZE = 512;
 constexpr int SDL_AUDIO_MAX_CALLBACKS_PER_SEC = 30;
 constexpr double SDL_VOLUME_STEP = (0.75);
 constexpr int AUDIO_DIFF_AVG_NB = 20;
-constexpr double REFRESH_RATE = 0.001;
+constexpr double REFRESH_RATE = 0.0001;
 constexpr int USE_ONEPASS_SUBTITLE_RENDER = 1;
 constexpr int FF_QUIT_EVENT = (SDL_USEREVENT + 2);    //自定义的退出事件
 enum ShowMode
@@ -169,11 +169,11 @@ public:
 
 	int frame_rate_;
 	/* 时钟差异小于该阈值则认为已同步，不必进行时钟同步 */
-	double AV_SYNC_THRESHOLD_MIN = 0.0166667; // 0.0166667;
+	double AV_SYNC_THRESHOLD_MIN = 0.0166667;; // 0.0166667;
 	/* 时钟差异大于该阈值则需要进行时钟同步 */
 	double AV_SYNC_THRESHOLD_MAX = 0.0333334; // 0.0333334;
 	/* 如果一帧的时长大于该阈值，则为了实现同步，不再重复显示/播放该帧 */
-	double AV_SYNC_FRAMEDUP_THRESHOLD = 0.0666668; //  0.0666668;
+	double AV_SYNC_FRAMEDUP_THRESHOLD = 0.1; //  0.0666668;
 };
 
 

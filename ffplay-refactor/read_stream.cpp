@@ -401,7 +401,8 @@ int read_thread(void * arg)
 			int64_t seek_min = ms->seek_rel > 0 ? seek_target - ms->seek_rel + 2 : INT64_MIN;
 			int64_t seek_max = ms->seek_rel < 0 ? seek_target - ms->seek_rel - 2 : INT64_MAX;
 
-			ret = avformat_seek_file(ms->ic, -1, seek_min, seek_target, seek_max, ms->seek_flags);
+			ret = av_seek_frame(ms->ic, -1, seek_target, ms->seek_flags);
+			//ret = avformat_seek_file(ms->ic, -1, seek_min, seek_target, seek_max, ms->seek_flags);
 
 			if (ret < 0)
 			{
@@ -424,14 +425,14 @@ int read_thread(void * arg)
 					ms->video_pq.packet_queue_flush();
 					ms->video_pq.packet_queue_put(&MediaState::flush_pkt);
 				}
-				//if (ms->seek_flags & AVSEEK_FLAG_BYTE)
-				//{
-				//	ms->extclk.set_clock(NAN, 0);
-				//}
-				//else
-				//{
-				//	ms->extclk.set_clock(seek_target / (double)AV_TIME_BASE, 0);
-				//}
+				if (ms->seek_flags & AVSEEK_FLAG_BYTE)
+				{
+					ms->extclk.set_clock(NAN, 0);
+				}
+				else
+				{
+					ms->extclk.set_clock(seek_target / (double)AV_TIME_BASE, 0);
+				}
 			}
 			ms->seek_req = 0;  
 			ms->queue_attachments_req = 1;
@@ -519,7 +520,9 @@ int read_thread(void * arg)
 		
 		if (ret < 0)
 		{
-			
+			char buf[64];
+			av_strerror(err, buf, 64);
+			//std::cout << "Read ERR:" << buf << std::endl;
 			if ((ret == AVERROR_EOF || avio_feof(fmt_ctx->pb)) && !ms->eof)
 			{
 				if (ms->video_stream >= 0)
@@ -655,8 +658,8 @@ bool stream_open(MediaState* ms, const char * filename)
 	ms->samp_fq.frame_queue_init(&ms->audio_pq, SAMPLE_QUEUE_SIZE, 1);
 
 	/* 初始化几个时钟 */
-	ms->vidclk = Clock(ms->video_pq.get_serial_address());
-	ms->audclk = Clock(ms->audio_pq.get_serial_address());
+	ms->vidclk = Clock(&ms->video_pq.get_serial());
+	ms->audclk = Clock(&ms->audio_pq.get_serial());
 	ms->extclk = Clock(ms->extclk.get_serial());
 	ms->audio_clock_serial = -1;
 

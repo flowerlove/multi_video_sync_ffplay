@@ -78,12 +78,12 @@ int main(int argc, char* argv[])
 	ms_bottom_->init();
 	ms->is_master_ = true;
 	
-	int video_width = 3840;
-	int video_height = 1728;
+	int video_width = 960;
+	int video_height = 540;
 
 	ms->xleft = 0;
 	ms->ytop = 0;
-	ms->input_filename = "D:\\ffmpeg\\17-1.MP4";
+	ms->input_filename = "D:\\ffmpeg\\5-1.MP4";
 	ms->rect_.x = ms->xleft;
 	ms->rect_.y = ms->ytop;
 	ms->rect_.w = video_width;
@@ -93,23 +93,23 @@ int main(int argc, char* argv[])
 
 	ms_right_->xleft = video_width;
 	ms_right_->ytop = 0;
-	ms_right_->input_filename = "D:\\ffmpeg\\17-2.MP4";
+	ms_right_->input_filename = "D:\\ffmpeg\\5-2.MP4";
 	ms_right_->rect_.x = ms_right_->xleft;
 	ms_right_->rect_.y = ms_right_->ytop;
 	ms_right_->rect_.w = video_width;
 	ms_right_->rect_.h = video_height;
 
-	ms_top_->xleft = video_width * 2;
-	ms_top_->ytop = 0;
-	ms_top_->input_filename = "D:\\ffmpeg\\17-3.MP4";
+	ms_top_->xleft = 0;
+	ms_top_->ytop = video_height;
+	ms_top_->input_filename = "D:\\ffmpeg\\5-3.MP4";
 	ms_top_->rect_.x = ms_top_->xleft;
 	ms_top_->rect_.y = ms_top_->ytop;
 	ms_top_->rect_.w = video_width;
 	ms_top_->rect_.h = video_height;
 
-	ms_bottom_->xleft = video_width * 3;
-	ms_bottom_->ytop = 0;
-	ms_bottom_->input_filename = "D:\\ffmpeg\\17-4.MP4";
+	ms_bottom_->xleft = video_width;
+	ms_bottom_->ytop = video_height;
+	ms_bottom_->input_filename = "D:\\ffmpeg\\5-4.MP4";
 	ms_bottom_->rect_.x = ms_bottom_->xleft;
 	ms_bottom_->rect_.y = ms_bottom_->ytop;
 	ms_bottom_->rect_.w = video_width;
@@ -133,10 +133,9 @@ int main(int argc, char* argv[])
 	SDL_EventState(SDL_USEREVENT, SDL_IGNORE);
 
 	MediaState::window = SDL_CreateWindow("OnePlayer1", 0, 0,
-		ms_bottom_->rect_.x + ms_bottom_->rect_.w,
-		ms_bottom_->rect_.y + ms_bottom_->rect_.h,
-		SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+		/*ms_bottom_->rect_.x + */video_width * 2,
+		/*ms_bottom_->rect_.y + */video_height * 2,
+		SDL_WINDOW_OPENGL);
 	if (MediaState::window)
 	{
 		MediaState::renderer = SDL_CreateRenderer(MediaState::window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -156,7 +155,7 @@ int main(int argc, char* argv[])
 		av_log(NULL, AV_LOG_FATAL, "Failed to create window or renderer: %s", SDL_GetError());
 		do_exit(ms);
 	}
-
+	SDL_ShowWindow(MediaState::window);
 	SDL_Thread* left_thread_ = SDL_CreateThread(left_thread, "Left_Thread", ms);
 	SDL_Thread* right_thread_ = SDL_CreateThread(right_thread, "Right_Thread", ms_right_);
 	SDL_Thread* top_thread_ = SDL_CreateThread(top_thread, "top_Thread", ms_top_);

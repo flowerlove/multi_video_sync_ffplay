@@ -11,21 +11,27 @@ int get_video_frame(MediaState * ms, AVFrame * frame)
 	//若解码成功
 	if (got_picture)
 	{
-		double dpts = NAN;
-
-		if (frame->pts != AV_NOPTS_VALUE)
-			dpts = av_q2d(ms->video_st->time_base) * frame->pts;
-
 		frame->sample_aspect_ratio = av_guess_sample_aspect_ratio(ms->ic, ms->video_st, frame);
 
 		if (ms->framedrop > 0 || (ms->framedrop && ms->get_master_sync_type() != AV_SYNC_VIDEO_MASTER))
 		{
+			double dpts = NAN;
 			if (frame->pts != AV_NOPTS_VALUE)
 			{
-				double diff = dpts - MediaState::global_ms_->get_master_clock();
-				if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD && diff - ms->frame_last_filter_delay < 0 &&
-					ms->viddec.get_pkt_serial() == *ms->vidclk.get_serial() && ms->video_pq.get_nb_packets())
+				dpts = av_q2d(ms->video_st->time_base) * frame->pts;
+				double master_clock = ms->is_master_ ? ms->get_master_clock() : MediaState::global_ms_->get_video_clock();
+				double diff = dpts - master_clock;
+				double diff_delay = diff - ms->frame_last_filter_delay;
+				int videoq_nb_packets = ms->video_pq.get_nb_packets();
+				int viddec_pkt_serial = ms->viddec.get_pkt_serial();
+				int vidclk_serial = *ms->vidclk.get_serial();
+
+				if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD && diff_delay < 0 &&
+					viddec_pkt_serial == vidclk_serial && videoq_nb_packets)
 				{
+					std::cout << "FrameDrop~" << "masterClock:"<< master_clock << " dpts:" << dpts << " Diff:" << diff << " diff_delay:" << diff_delay
+						<< " vq_nb_packets:" << videoq_nb_packets << " viddec_pkt_serial:" << viddec_pkt_serial
+						<< " vidclk_serial:" << vidclk_serial << std::endl;
 					ms->frame_drops_early++; 
 					av_frame_unref(frame);   
 					got_picture = 0;         
@@ -48,12 +54,12 @@ int video_thread(void * arg)
 	AVRational tb = ms->video_st->time_base; //获取时基
 	AVRational frame_rate = av_guess_frame_rate(ms->ic, ms->video_st, NULL); //获取帧率
 
-	if (ms->is_master_)
+	//if (ms->is_master_)
 	{
 		ms->frame_rate_ = frame_rate.num / frame_rate.den;
 		ms->AV_SYNC_THRESHOLD_MIN = 1.0f / (double)ms->frame_rate_;
 		ms->AV_SYNC_THRESHOLD_MAX = 2 * ms->AV_SYNC_THRESHOLD_MIN;
-		ms->AV_SYNC_FRAMEDUP_THRESHOLD = 3 * ms->AV_SYNC_THRESHOLD_MIN;
+		ms->AV_SYNC_FRAMEDUP_THRESHOLD = 4 * ms->AV_SYNC_THRESHOLD_MIN;
 	}
 
 	if (!frame)
@@ -326,7 +332,7 @@ void video_image_display(MediaState * ms)
 		vp->flip_v = vp->frame->linesize[0] < 0;
 	}
 
-	if (ms->is_master_)
+	//if (ms->is_master_)
 	{
 		set_sdl_yuv_conversion_mode(vp->frame);
 
@@ -374,8 +380,8 @@ void video_display(MediaState * ms)
 
 	if (ms->is_master_)
 	{
-		//SDL_SetRenderDrawColor(MediaState::renderer, 0, 0, 0, 255);
-		//SDL_RenderClear(MediaState::renderer);
+		SDL_SetRenderDrawColor(MediaState::renderer, 0, 0, 0, 255);
+		SDL_RenderClear(MediaState::renderer);
 	}
 	//纹理处理
 	if (ms->audio_st && ms->show_mode != SHOW_MODE_VIDEO)
